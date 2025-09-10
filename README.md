@@ -1,18 +1,48 @@
 # PulseForge
 ## Milestone-Powered Decentralized Crowdfunding with Multi-Token Support
 
-PulseForge is an innovative decentralized crowdfunding protocol built on the Stacks blockchain where fund release is conditional on milestone achievements. Unlike traditional crowdfunding platforms, PulseForge ensures accountability through a milestone-based voting system that protects both creators and backers. **Now supports both STX and SIP-010 fungible tokens for maximum flexibility.**
+PulseForge is an innovative decentralized crowdfunding protocol built on the Stacks blockchain where fund release is conditional on milestone achievements. Unlike traditional crowdfunding platforms, PulseForge ensures accountability through a milestone-based voting system that protects both creators and backers. **Now supports both STX and SIP-010 fungible tokens for maximum flexibility, plus advanced milestone types with automated verification.**
 
 ## 🚀 Features
 
 - **Milestone-Based Funding**: Campaign funds are released incrementally as creators complete predefined milestones
 - **Multi-Token Support**: Support for both STX and approved SIP-010 fungible tokens
+- **Advanced Milestone Types**: Multiple milestone verification methods including automated verification
+- **Conditional Logic**: Smart milestones with dependencies and automated triggers
 - **Democratic Voting System**: Backers vote to approve milestone completion before funds are released
 - **Refundable Escrow**: Tokens are held in escrow and can be refunded if campaigns fail to deliver
 - **Transparent Progress Tracking**: Real-time visibility into campaign progress and milestone status
 - **Creator Protection**: Anti-spam measures and proper validation ensure legitimate campaigns
 - **Backer Protection**: Vote-based approval system prevents fund misuse
 - **Token Registry**: Curated list of approved SIP-010 tokens for secure campaign creation
+- **Automated Verification**: Time-locked, funding-threshold, and conditional milestones
+
+## 🎯 Milestone Types
+
+### 1. Manual Milestones (`milestone-type-manual`)
+- **Traditional voting-based**: Requires backer votes to approve completion
+- **Creator flexibility**: Allows subjective milestone evaluation
+- **Democratic oversight**: Community-driven approval process
+
+### 2. Time-Locked Milestones (`milestone-type-time-locked`)
+- **Automatic verification**: Triggers when target block height is reached
+- **Deadline enforcement**: Ensures time-based deliverables
+- **No voting required**: Streamlined release process
+
+### 3. Funding Threshold Milestones (`milestone-type-funding-threshold`)
+- **Goal-based triggers**: Activates when campaign reaches specified funding level
+- **Incentive alignment**: Rewards successful fundraising milestones
+- **Automatic release**: No manual intervention needed
+
+### 4. Conditional Milestones (`milestone-type-conditional`)
+- **Data-driven verification**: Based on external verification data set by creator
+- **Flexible conditions**: Customizable success criteria
+- **Transparent tracking**: Verification data stored on-chain
+
+### 5. Multi-Dependency Milestones (`milestone-type-multi-dependency`)
+- **Sequential execution**: Requires completion of prerequisite milestones
+- **Complex workflows**: Enables sophisticated project planning
+- **Dependency validation**: Automatic prerequisite checking
 
 ## 🏗️ Architecture
 
@@ -20,8 +50,9 @@ PulseForge is an innovative decentralized crowdfunding protocol built on the Sta
 
 - **Campaign Management**: Create and manage crowdfunding campaigns with customizable parameters for STX or SIP-010 tokens
 - **Token Registry**: Approved token system for SIP-010 fungible tokens
-- **Milestone System**: Define time-based or deliverable milestones with voting requirements
-- **Voting Mechanism**: Democratic approval system for milestone completion
+- **Advanced Milestone System**: Multiple milestone types with automated verification capabilities
+- **Conditional Logic Engine**: Dependency checking and automated milestone verification
+- **Voting Mechanism**: Democratic approval system for manual milestone completion
 - **Escrow System**: Secure token holding and conditional release for both STX and SIP-010 tokens
 - **Refund System**: Automatic refund capability for failed campaigns
 
@@ -30,16 +61,22 @@ PulseForge is an innovative decentralized crowdfunding protocol built on the Sta
 #### Campaign Creation
 - `create-stx-campaign`: Launch a new STX crowdfunding campaign
 - `create-token-campaign`: Launch a new SIP-010 token crowdfunding campaign
-- `add-milestone`: Define milestones with specific voting requirements
+- `add-milestone`: Define basic manual milestones with voting requirements
+- `add-advanced-milestone`: Create advanced milestones with specific types and conditions
 
 #### Token Management
 - `approve-token`: Approve SIP-010 tokens for platform use (owner only)
 - `remove-token-approval`: Remove token approval (owner only)
 
+#### Milestone Management
+- `set-milestone-verification`: Set verification data for conditional milestones
+- `vote-milestone`: Vote on milestone completion (with automatic verification checks)
+- `can-milestone-auto-verify`: Check if milestone can be automatically verified
+- `get-milestone-dependency-status`: View milestone dependency information
+
 #### Campaign Participation
 - `back-stx-campaign`: Contribute STX tokens to support a campaign
 - `back-token-campaign`: Contribute SIP-010 tokens to support a campaign
-- `vote-milestone`: Vote on milestone completion as a campaign backer
 
 #### Fund Release
 - `release-stx-milestone-funds`: Release STX funds upon successful milestone approval
@@ -102,14 +139,72 @@ clarinet test
   'SP3FBR2AGK5H9QBDH3EEN6DF8EK8JY7RX8QJ5SVTE.some-token)
 ```
 
-### Adding Milestones
+### Adding Advanced Milestones
 
+#### Manual Milestone (Traditional)
 ```clarity
 (contract-call? .pulseforge add-milestone 
   u1 ;; campaign-id
   "Complete MVP development" 
   u720  ;; Target block (~5 days)
   u10)  ;; Required votes
+```
+
+#### Time-Locked Milestone
+```clarity
+(contract-call? .pulseforge add-advanced-milestone 
+  u1    ;; campaign-id
+  "Development phase 1 deadline"
+  u1    ;; milestone-type-time-locked
+  u1440 ;; Target block (~10 days)
+  u5    ;; Required votes (backup)
+  u0    ;; No condition value needed
+  none) ;; No dependency
+```
+
+#### Funding Threshold Milestone
+```clarity
+(contract-call? .pulseforge add-advanced-milestone 
+  u1        ;; campaign-id
+  "Reach 50% funding goal"
+  u2        ;; milestone-type-funding-threshold
+  u720      ;; Target block
+  u3        ;; Required votes (backup)
+  u500000   ;; Condition: 500 STX threshold
+  none)     ;; No dependency
+```
+
+#### Conditional Milestone
+```clarity
+(contract-call? .pulseforge add-advanced-milestone 
+  u1    ;; campaign-id
+  "Pass technical audit"
+  u3    ;; milestone-type-conditional
+  u1440 ;; Target block
+  u7    ;; Required votes (backup)
+  u100  ;; Condition: audit score >= 100
+  none) ;; No dependency
+```
+
+#### Multi-Dependency Milestone
+```clarity
+(contract-call? .pulseforge add-advanced-milestone 
+  u1       ;; campaign-id
+  "Final release after testing"
+  u4       ;; milestone-type-multi-dependency
+  u2160    ;; Target block
+  u5       ;; Required votes (backup)
+  u0       ;; No condition value
+  (some u1)) ;; Depends on milestone 1
+```
+
+### Setting Verification Data (Conditional Milestones)
+
+```clarity
+(contract-call? .pulseforge set-milestone-verification
+  u1   ;; campaign-id
+  u3   ;; milestone-id
+  u95) ;; Verification data (e.g., audit score)
 ```
 
 ### Backing Campaigns
@@ -131,6 +226,16 @@ clarinet test
 
 ```clarity
 (contract-call? .pulseforge vote-milestone u1 u1) ;; Vote on milestone 1 of campaign 1
+```
+
+### Checking Milestone Status
+
+```clarity
+;; Check if milestone can be auto-verified
+(contract-call? .pulseforge can-milestone-auto-verify u1 u1)
+
+;; Check milestone dependency status
+(contract-call? .pulseforge get-milestone-dependency-status u1 u2)
 ```
 
 ### Releasing Funds
@@ -186,6 +291,9 @@ The contract includes comprehensive error handling and validation:
 - Parameter validation for all inputs
 - Access control for campaign creators and contract owner
 - Token type validation and approval checks
+- Advanced milestone type validation
+- Dependency checking for milestone prerequisites
+- Automated verification logic testing
 - Anti-spam measures for voting
 - Proper escrow management for both STX and SIP-010 tokens
 - Edge case handling for refunds
@@ -195,9 +303,12 @@ The contract includes comprehensive error handling and validation:
 
 - **Token Approval System**: Only pre-approved SIP-010 tokens can be used
 - **Type Safety**: Clear separation between STX and SIP-010 token operations
+- **Advanced Milestone Validation**: Comprehensive checks for milestone types and conditions
+- **Dependency Verification**: Automatic validation of milestone prerequisites
 - **Transfer Validation**: Comprehensive error handling for token transfers
 - **Access Control**: Proper authorization checks for all sensitive operations
 - **Anti-Spam Protection**: Voting and backing restrictions prevent abuse
+- **Input Validation**: Thorough parameter checking to prevent invalid states
 
 ## 🗺️ Roadmap
 
@@ -207,19 +318,25 @@ The contract includes comprehensive error handling and validation:
 - Token approval registry
 - Enhanced security measures
 
-### Phase 2: Advanced Features
+### Phase 2: Advanced Features ✅
+- **Advanced Milestone Types**: Time-locked, funding-threshold, conditional, and dependency-based milestones
+- **Automated Verification**: Smart contract-based milestone verification
+- **Conditional Logic**: Complex milestone dependencies and triggers
+- **Enhanced Analytics**: Detailed milestone tracking and verification data
+
+### Phase 3: Ecosystem Integration
 - **NFT Rewards**: Issue campaign-specific NFTs to backers
 - **Tiered Backing**: Different contribution levels with varying rewards
 - **Campaign Categories**: Organize campaigns by industry/type
-- **Advanced Analytics**: Detailed campaign performance metrics
+- **Advanced Analytics Dashboard**: Real-time campaign performance metrics
 
-### Phase 3: Ecosystem Integration
+### Phase 4: Enterprise Features
 - **Cross-chain Support**: Bridge to other blockchain networks
 - **DeFi Integration**: Yield farming for escrowed funds
 - **Governance Token**: Platform governance through native token
 - **Mobile App**: Native mobile application for campaign management
 
-### Phase 4: Enterprise Features
+### Phase 5: Advanced Automation
 - **Batch Operations**: Handle multiple campaigns efficiently
 - **API Gateway**: RESTful API for third-party integrations
 - **White-label Solutions**: Customizable crowdfunding solutions
@@ -234,12 +351,9 @@ We welcome contributions! Please read our contributing guidelines and submit pul
 - Include comprehensive tests for new features
 - Update documentation for any changes
 - Ensure `clarinet check` passes without warnings
+- Test all milestone types and edge cases
 
 ## 🔗 Links
-
-- [Stacks Documentation](https://docs.stacks.co/)
-- [Clarity Language Reference](https://docs.stacks.co/docs/clarity/)
-- [SIP-010 Token Standard](https://github.com/stacksgov/sips/blob/main/sips/sip-010/sip-010-fungible-token-standard.md)
 
 ---
 
