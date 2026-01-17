@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Analytics - PulseForge</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+        body { font-family: 'Inter', sans-serif; }
+        .gradient-bg { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <!-- Navigation -->
+    <nav class="bg-white shadow-sm border-b">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-16">
+                <div class="flex items-center space-x-2">
+                    <a href="index.html" class="flex items-center space-x-2">
+                        <div class="w-10 h-10 gradient-bg rounded-lg flex items-center justify-center">
+                            <i data-lucide="zap" class="text-white w-6 h-6"></i>
+                        </div>
+                        <span class="text-2xl font-bold text-gray-900">PulseForge</span>
+                    </a>
+                </div>
+                <div class="hidden md:flex space-x-8">
+                    <a href="index.html" class="text-gray-700 hover:text-purple-600 font-medium">Campaigns</a>
+                    <a href="create.html" class="text-gray-700 hover:text-purple-600 font-medium">Create</a>
+                    <a href="analytics.html" class="text-purple-600 font-medium">Analytics</a>
+                    <a href="docs.html" class="text-gray-700 hover:text-purple-600 font-medium">Docs</a>
+                </div>
+                <button class="gradient-bg text-white px-6 py-2 rounded-lg font-medium hover:opacity-90 transition">
+                    Connect Wallet
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Header -->
+    <section class="gradient-bg text-white py-12">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <h1 class="text-4xl font-bold mb-2">Campaign Analytics</h1>
+            <p class="text-xl text-purple-100">Real-time insights and performance metrics</p>
+        </div>
+    </section>
+
+    <!-- Main Content -->
+    <section class="py-8">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            
+            <!-- Platform Overview Stats -->
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+                <div class="bg-white rounded-xl shadow-lg p-6">
+                    <div class="flex items-center justify-between mb-3">
+                        <i data-lucide="trending-up" class="text-purple-600 w-8 h-8"></i>
+                        <span class="text-xs font-semibold text-green-600 bg-green-100 px-2 py-1 rounded">+12.5%</span>
+                    </div>
+                    <h3 class="text-3xl font-bold text-gray-900">$12.5M</h3>
+                    <p class="text-gray-600 text-sm">Total Volume</p>
+                </div>
+
+                <div class="bg-white rounded-xl shadow-lg p-6">
+                    <div class="flex items-center justify-between mb-3">
+                        <i data-lucide="zap" class="text-purple-600 w-8 h-8"></i>
+                        <span class="text-xs font-semibold text-green-600 bg-green-100 px-2 py-1 rounded">+8.3%</span>
+                    </div>
+                    <h3 class="text-3xl font-bold text-gray-900">125</h3>
+                    <p class="text-gray-600 text-sm">Avg Velocity (STX/block)</p>
+                </div>
+
+                <div class="bg-white rounded-xl shadow-lg p-6">
+                    <div class="flex items-center justify-between mb-3">
+                        <i data-lucide="users" class="text-purple-600 w-8 h-8"></i>
+                        <span class="text-xs font-semibold text-green-600 bg-green-100 px-2 py-1 rounded">+15.2%</span>
+                    </div>
+                    <h3 class="text-3xl font-bold text-gray-900">8,432</h3>
+                    <p class="text-gray-600 text-sm">Active Backers</p>
+                </div>
+
+                <div class="bg-white rounded-xl shadow-lg p-6">
+                    <div class="flex items-center justify-between mb-3">
+                        <i data-lucide="percent" class="text-purple-600 w-8 h-8"></i>
+                        <span class="text-xs font-semibold text-green-600 bg-green-100 px-2 py-1 rounded">+5.1%</span>
+                    </div>
+                    <h3 class="text-3xl font-bold text-gray-900">78%</h3>
+                    <p class="text-gray-600 text-sm">Avg Participation</p>
+                </div>
+            </div>
+
+            <!-- Charts Row -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+                <!-- Funding Trend Chart -->
+                <div class="bg-white rounded-xl shadow-lg p-6">
+                    <h3 class="text-xl font-bold text-gray-900 mb-4">Funding Trend (Last 30 Days)</h3>
+                    <canvas id="fundingChart" height="250"></canvas>
+                </div>
+
+                <!-- Campaign Distribution -->
+                <div class="bg-white rounded-xl shadow-lg p-6">
+                    <h3 class="text-xl font-bold text-gray-900 mb-4">Campaign Distribution</h3>
+                    <canvas id="distributionChart" height="250"></canvas>
+                </div>
+            </div>
+
+            <!-- Top Campaigns -->
+            <div class="bg-white rounded-xl shadow-lg p-6 mb-8">
+                <div class="flex items-center justify-between mb-6">
+                    <h3 class="text-xl font-bold text-gray-900">Top Performing Campaigns</h3>
+                    <select class="px-4 py-2 border border-gray-300 rounded-lg text-sm">
+                        <option>Last 7 days</option>
+                        <option>Last 30 days</option>
+                        <option>All time</option>
+                    </select>
+                </div>
+
+                <div class="overflow-x-auto">
+                    <table class="w-full">
+                        <thead>
+                            <tr class="border-b border-gray-200">
+                                <th class="text-left py-3 px-4 text-sm font-semibold text-gray-700">Campaign</th>
+                                <th class="text-left py-3 px-4 text-sm font-semibold text-gray-700">Raised</th>
+                                <th class="text-left py-3 px-4 text-sm font-semibold text-gray-700">Velocity</th>
+                                <th class="text-left py-3 px-4 text-sm font-semibold text-gray-700">Backers</th>
+                                <th class="text-left py-3 px-4 text-sm font-semibold text-gray-700">Participation</th>
+                                <th class="text-left py-3 px-4 text-sm font-semibold text-gray-700">Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr class="border-b border-gray-100 hover:bg-gray-50">
+                                <td class="py-4 px-4">
+                                    <div class="flex items-center space-x-3">
+                                        <div class="w-10 h-10 bg-gradient-to-r from-purple-500 to-pink-500 rounded-lg"></div>
+                                        <div>
+                                            <p class="font-semibold text-gray-900">DeFi Innovation</p>
+                                            <p class="text-sm text-gray-500">Tech</p>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td class="py-4 px-4">
+                                    <p class="font-semibold text-gray-900">750,000 STX</p>
+                                    <p class="text-sm text-gray-500">75% of goal</p>
+                                </td>
+                                <td class="py-4 px-4">
+                                    <p class="font-semibold text-gray-900">185 STX/block</p>
+                                    <span class="text-xs text-green-600 bg-green-100 px-2 py-1 rounded">Fast</span>
+                                </td>
+                                <td class="py-4 px-4 font-semibold text-gray-900">342</td>
+                                <td class="py-4 px-4">
+                                    <div class="flex items-center space-x-2">
+                                        <div class="flex-1 bg-gray-200 rounded-full h-2">
+                                            <div class="bg-purple-600 h-2 rounded-full" style="width: 85%"></div>
+                                        </div>
+                                        <span class="text-sm font-semibold text-gray-700">85%</span>
+                                    </div>
+                                </td>
+                                <td class="py-4 px-4">
+                                    <span class="px-3 py-1 bg-green-100 text-green-700 rounded-full text-sm font-medium">Active</span>
+                                </td>
+                            </tr>
+
+                            <tr class="border-b border-gray-100 hover:bg-gray-50">
+                                <td class="py-4 px-4">
+                                    <div class="flex items-center space-x-3">
+                                        <div class="w-10 h-10 bg-gradient-to-r from-blue-500 to-cyan-500 rounded-lg"></div>
+                                        <div>
+                                            <p class="font-semibold text-gray-900">Blockchain RPG</p>
+                                            <p class="text-sm text-gray-500">Gaming</p>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td class="py-4 px-4">
+                                    <p class="font-semibold text-gray-900">225,000 STX</p>
+                                    <p class="text-sm text-gray-500">45% of goal</p>
+                                </td>
+                                <td class="py-4 px-4">
+                                    <p class="font-semibold text-gray-900">92 STX/block</p>
+                                    <span class="text-xs text-blue-600 bg-blue-100 px-2 py-1 rounded">Normal</span>
+                                </td>
+                                <td class="py-4 px-4 font-semibold text-gray-900">189</td>
+                                <td class="py-4 px-4">
+                                    <div class="flex items-center space-x-2">
+                                        <div class="flex-1 bg-gray-200 rounded-full h-2">
+                                            <div class="bg-purple-600 h-2 rounded-full" style="width: 72%"></div>
+                                        </div>
+                                        <span class="text-sm font-semibold text-gray-700">72%</span>
+                                    </div>
+                                </td>
+                                <td class="py-4 px-4">
+                                    <span class="px-3 py-1 bg-green-100 text-green-700 rounded-full text-sm font-medium">Active</span>
+                                </td>
+                            </tr>
+
+                            <tr class="border-b border-gray-100 hover:bg-gray-50">
+                                <td class="py-4 px-4">
+                                    <div class="flex items-center space-x-3">
+                                        <div class="w-10 h-10 bg-gradient-to-r from-green-500 to-emerald-500 rounded-lg"></div>
+                                        <div>
+                                            <p class="font-semibold text-gray-900">Digital Art Collective</p>
+                                            <p class="text-sm text-gray-500">Art</p>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td class="py-4 px-4">
+                                    <p class="font-semibold text-gray-900">138,000 STX</p>
+                                    <p class="text-sm text-gray-500">92% of goal</p>
+                                </td>
+                                <td class="py-4 px-4">
+                                    <p class="font-semibold text-gray-900">156 STX/block</p>
+                                    <span class="text-xs text-green-600 bg-green-100 px-2 py-1 rounded">Fast</span>
+                                </td>
+                                <td class="py-4 px-4 font-semibold text-gray-900">567</td>
+                                <td class="py-4 px-4">
+                                    <div class="flex items-center space-x-2">
+                                        <div class="flex-1 bg-gray-200 rounded-full h-2">
+                                            <div class="bg-purple-600 h-2 rounded-full" style="width: 94%"></div>
+                                        </div>
+                                        <span class="text-sm font-semibold text-gray-700">94%</span>
+                                    </div>
+                                </td>
+                                <td class="py-4 px-4">
+                                    <span class="px-3 py-1 bg-yellow-100 text-yellow-700 rounded-full text-sm font-medium">Ending Soon</span>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Milestone Insights -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                <div class="bg-white rounded-xl shadow-lg p-6">
+                    <h3 class="text-xl font-bold text-gray-900 mb-4">Milestone Completion Rate</h3>
+                    <canvas id="milestoneChart" height="200"></canvas>
+                </div>
+
+                <div class="bg-white rounded-xl shadow-lg p-6">
+                    <h3 class="text-xl font-bold text-gray-900 mb-6">Key Metrics</h3>
+                    <div class="space-y-4">
+                        <div class="flex items-center justify-between pb-4 border-b border-gray-100">
+                            <div class="flex items-center space-x-3">
+                                <i data-lucide="clock" class="text-purple-600 w-5 h-5"></i>
+                                <span class="text-gray-700">Avg Time to Complete</span>
+                            </div>
+                            <span class="font-bold text-gray-900">8.3 days</span>
+                        </div>
+                        <div class="flex items-center justify-between pb-4 border-b border-gray-100">
+                            <div class="flex items-center space-x-3">
+                                <i data-lucide="check-circle" class="text-purple-600 w-5 h-5"></i>
+                                <span class="text-gray-700">Success Rate</span>
+                            </div>
+                            <span class="font-bold text-gray-900">87.5%</span>
+                        </div>
+                        <div class="flex items-center justify-between pb-4 border-b border-gray-100">
+                            <div class="flex items-center space-x-3">
+                                <i data-lucide="users" class="text-purple-600 w-5 h-5"></i>
+                                <span class="text-gray-700">Avg Backers per Campaign</span>
+                            </div>
+                            <span class="font-bold text-gray-900">246</span>
+                        </div>
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center space-x-3">
+                                <i data-lucide="dollar-sign" class="text-purple-600 w-5 h-5"></i>
+                                <span class="text-gray-700">Avg Contribution</span>
+                            </div>
+                            <span class="font-bold text-gray-900">2,185 STX</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="bg-gray-900 text-white py-12 mt-16">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+            <p class="text-gray-400">&copy; 2026 PulseForge. Built with ❤️ on Stacks.</p>
+        </div>
+    </footer>
+
+    <script>
+        lucide.createIcons();
+
+        // Funding Trend Chart
+        const fundingCtx = document.getElementById('fundingChart').getContext('2d');
+        new Chart(fundingCtx, {
+            type: 'line',
+            data: {
+                labels: ['Day 1', 'Day 5', 'Day 10', 'Day 15', 'Day 20', 'Day 25', 'Day 30'],
+                datasets: [{
+                    label: 'Total Raised (STX)',
+                    data: [150000, 320000, 580000, 850000, 1100000, 1350000, 1650000],
+                    borderColor: '#667eea',
+                    backgroundColor: 'rgba(102, 126, 234, 0.1)',
+                    tension: 0.4,
+                    fill: true
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: {
+                    y: { beginAtZero: true }
+                }
+            }
+        });
+
+        // Distribution Chart
+        const distCtx = document.getElementById('distributionChart').getContext('2d');
+        new Chart(distCtx, {
+            type: 'doughnut',
+            data: {
+                labels: ['Technology', 'Gaming', 'Art & Design', 'DeFi', 'Other'],
+                datasets: [{
+                    data: [35, 25, 20, 15, 5],
+                    backgroundColor: ['#667eea', '#764ba2', '#f093fb', '#4facfe', '#43e97b']
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false
+            }
+        });
+
+        // Milestone Chart
+        const milestoneCtx = document.getElementById('milestoneChart').getContext('2d');
+        new Chart(milestoneCtx, {
+            type: 'bar',
+            data: {
+                labels: ['Manual', 'Time-Locked', 'Funding Threshold', 'Conditional', 'Multi-Dependency'],
+                datasets: [{
+                    label: 'Completion Rate (%)',
+                    data: [85, 95, 92, 78, 88],
+                    backgroundColor: '#667eea'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: {
+                    y: { beginAtZero: true, max: 100 }
+                }
+            }
+        });
+    </script>
+</body>
+</html>
