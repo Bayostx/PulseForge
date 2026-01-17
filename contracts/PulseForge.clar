@@ -1,6 +1,6 @@
 ;; PulseForge - Milestone-Powered Decentralized Crowdfunding with Multi-Token Support
 ;; A crowdfunding protocol where fund release is conditional on milestone achievements
-;; Now supports STX, SIP-010 fungible tokens, and advanced milestone types with automated verification
+;; Now supports STX, SIP-010 fungible tokens, advanced milestone types, and campaign analytics
 
 ;; Define SIP-010 trait locally for development
 (define-trait sip-010-trait
@@ -122,6 +122,30 @@
   }
 )
 
+;; Campaign Analytics
+(define-map campaign-analytics
+  uint
+  {
+    total-backers: uint,
+    average-contribution: uint,
+    first-contribution-block: uint,
+    last-contribution-block: uint,
+    total-votes-cast: uint,
+    funding-velocity: uint
+  }
+)
+
+;; Milestone Analytics
+(define-map milestone-analytics
+  {campaign-id: uint, milestone-id: uint}
+  {
+    vote-participation-rate: uint,
+    completion-block: uint,
+    time-to-complete: uint,
+    voter-count: uint
+  }
+)
+
 ;; Private Functions
 
 ;; Validate token contract
@@ -198,6 +222,66 @@
   )
 )
 
+;; Update campaign analytics
+(define-private (update-campaign-analytics (campaign-id uint) (new-backer-amount uint))
+  (let ((analytics (default-to 
+                     {total-backers: u0, average-contribution: u0, first-contribution-block: stacks-block-height, 
+                      last-contribution-block: stacks-block-height, total-votes-cast: u0, funding-velocity: u0}
+                     (map-get? campaign-analytics campaign-id)))
+        (new-total-backers (+ (get total-backers analytics) u1))
+        (campaign-data (unwrap! (map-get? campaigns campaign-id) false)))
+    (let ((new-avg (if (> new-total-backers u0) 
+                       (/ (get raised-amount campaign-data) new-total-backers) 
+                       u0))
+          (blocks-elapsed (if (> stacks-block-height (get first-contribution-block analytics))
+                             (- stacks-block-height (get first-contribution-block analytics))
+                             u1))
+          (new-velocity (if (> blocks-elapsed u0)
+                           (/ (get raised-amount campaign-data) blocks-elapsed)
+                           u0)))
+      (map-set campaign-analytics campaign-id {
+        total-backers: new-total-backers,
+        average-contribution: new-avg,
+        first-contribution-block: (get first-contribution-block analytics),
+        last-contribution-block: stacks-block-height,
+        total-votes-cast: (get total-votes-cast analytics),
+        funding-velocity: new-velocity
+      })
+      true
+    )
+  )
+)
+
+;; Update milestone analytics
+(define-private (update-milestone-analytics (campaign-id uint) (milestone-id uint))
+  (let ((analytics-key {campaign-id: campaign-id, milestone-id: milestone-id})
+        (milestone-data (unwrap! (map-get? milestones analytics-key) false))
+        (campaign-data (unwrap! (map-get? campaigns campaign-id) false)))
+    (let ((analytics (default-to 
+                       {vote-participation-rate: u0, completion-block: u0, time-to-complete: u0, voter-count: u0}
+                       (map-get? milestone-analytics analytics-key)))
+          (new-voter-count (+ (get voter-count analytics) u1))
+          (participation-rate (if (> (get total-backers (default-to 
+                                                          {total-backers: u1, average-contribution: u0, first-contribution-block: u0, 
+                                                           last-contribution-block: u0, total-votes-cast: u0, funding-velocity: u0}
+                                                          (map-get? campaign-analytics campaign-id))) u0)
+                                 (/ (* new-voter-count u100) 
+                                    (get total-backers (default-to 
+                                                         {total-backers: u1, average-contribution: u0, first-contribution-block: u0, 
+                                                          last-contribution-block: u0, total-votes-cast: u0, funding-velocity: u0}
+                                                         (map-get? campaign-analytics campaign-id))))
+                                 u0)))
+      (map-set milestone-analytics analytics-key {
+        vote-participation-rate: participation-rate,
+        completion-block: (get completion-block analytics),
+        time-to-complete: (get time-to-complete analytics),
+        voter-count: new-voter-count
+      })
+      true
+    )
+  )
+)
+
 ;; Public Functions
 
 ;; Approve a SIP-010 token for use in campaigns (only contract owner)
@@ -227,7 +311,7 @@
     (asserts! (> duration-blocks u0) err-invalid-amount)
     (asserts! (> (len title) u0) err-invalid-amount)
     (asserts! (> (len description) u0) err-invalid-amount)
-    (asserts! (<= duration-blocks u525600) err-invalid-amount) ;; Max 1 year in blocks
+    (asserts! (<= duration-blocks u525600) err-invalid-amount)
     (map-set campaigns campaign-id {
       creator: tx-sender,
       title: title,
@@ -241,6 +325,14 @@
       token-type: token-type-stx,
       token-contract: none
     })
+    (map-set campaign-analytics campaign-id {
+      total-backers: u0,
+      average-contribution: u0,
+      first-contribution-block: u0,
+      last-contribution-block: u0,
+      total-votes-cast: u0,
+      funding-velocity: u0
+    })
     (var-set next-campaign-id (+ campaign-id u1))
     (ok campaign-id)
   )
@@ -253,7 +345,7 @@
     (asserts! (> duration-blocks u0) err-invalid-amount)
     (asserts! (> (len title) u0) err-invalid-amount)
     (asserts! (> (len description) u0) err-invalid-amount)
-    (asserts! (<= duration-blocks u525600) err-invalid-amount) ;; Max 1 year in blocks
+    (asserts! (<= duration-blocks u525600) err-invalid-amount)
     (asserts! (is-approved-token token-contract) err-invalid-token)
     (map-set campaigns campaign-id {
       creator: tx-sender,
@@ -267,6 +359,14 @@
       completed-milestones: u0,
       token-type: token-type-sip010,
       token-contract: (some token-contract)
+    })
+    (map-set campaign-analytics campaign-id {
+      total-backers: u0,
+      average-contribution: u0,
+      first-contribution-block: u0,
+      last-contribution-block: u0,
+      total-votes-cast: u0,
+      funding-velocity: u0
     })
     (var-set next-campaign-id (+ campaign-id u1))
     (ok campaign-id)
@@ -289,7 +389,6 @@
     (asserts! (> (len description) u0) err-invalid-amount)
     (asserts! (is-valid-milestone-type milestone-type) err-invalid-milestone-type)
     
-    ;; Validate dependency if provided and store validated value
     (let ((validated-dependency
       (match dependency-milestone
         dep-id (begin
@@ -298,7 +397,6 @@
           (some dep-id))
         none)))
     
-    ;; Validate condition value for specific milestone types
     (asserts! (if (or (is-eq milestone-type milestone-type-funding-threshold)
             (is-eq milestone-type milestone-type-conditional))
         (> condition-value u0)
@@ -315,6 +413,13 @@
       auto-verified: false,
       condition-value: condition-value,
       dependency-milestone: validated-dependency
+    })
+    
+    (map-set milestone-analytics {campaign-id: campaign-id, milestone-id: milestone-id} {
+      vote-participation-rate: u0,
+      completion-block: u0,
+      time-to-complete: u0,
+      voter-count: u0
     }))
     
     (map-set campaigns campaign-id (merge campaign {milestones-count: (+ (get milestones-count campaign) u1)}))
@@ -357,6 +462,7 @@
     })
     
     (map-set campaigns campaign-id (merge campaign {raised-amount: (+ (get raised-amount campaign) amount)}))
+    (update-campaign-analytics campaign-id amount)
     (ok true)
   )
 )
@@ -379,6 +485,7 @@
           can-vote: true
         })
         (map-set campaigns campaign-id (merge campaign {raised-amount: (+ (get raised-amount campaign) amount)}))
+        (update-campaign-analytics campaign-id amount)
         (ok true)
       )
       error err-token-transfer-failed
@@ -399,18 +506,14 @@
     (asserts! (>= stacks-block-height (get target-block milestone)) err-milestone-not-ready)
     (asserts! (is-none (map-get? milestone-votes vote-key)) err-already-voted)
     
-    ;; Check dependency if milestone has one
     (match (get dependency-milestone milestone)
       dep-id (asserts! (is-dependency-met campaign-id dep-id) err-milestone-dependency-not-met)
       true
     )
     
-    ;; Check if milestone can be auto-verified
     (let ((can-auto-verify (auto-verify-milestone campaign-id milestone-id milestone)))
       (if (and (not (is-eq (get milestone-type milestone) milestone-type-manual)) can-auto-verify)
-          ;; Auto-verify if conditions are met
           (map-set milestones milestone-key (merge milestone {auto-verified: true}))
-          ;; Manual verification required - check if conditions are met for automatic milestone types
           (if (not (is-eq (get milestone-type milestone) milestone-type-manual))
               (asserts! can-auto-verify err-condition-not-met)
               true)
@@ -420,6 +523,12 @@
     (map-set milestone-votes vote-key true)
     (map-set milestones milestone-key 
       (merge milestone {current-votes: (+ (get current-votes milestone) u1)}))
+    (update-milestone-analytics campaign-id milestone-id)
+    
+    (let ((analytics (unwrap! (map-get? campaign-analytics campaign-id) err-not-found)))
+      (map-set campaign-analytics campaign-id 
+        (merge analytics {total-votes-cast: (+ (get total-votes-cast analytics) u1)}))
+    )
     (ok true)
   )
 )
@@ -428,34 +537,36 @@
 (define-public (release-stx-milestone-funds (campaign-id uint) (milestone-id uint))
   (let ((campaign (unwrap! (map-get? campaigns campaign-id) err-not-found))
         (milestone (unwrap! (map-get? milestones {campaign-id: campaign-id, milestone-id: milestone-id}) err-not-found))
-        (milestone-key {campaign-id: campaign-id, milestone-id: milestone-id})
-        (campaign-creator (get creator campaign))
-        (campaign-raised (get raised-amount campaign))
-        (campaign-milestones (get milestones-count campaign))
-        (milestone-vote-count (get current-votes milestone))
-        (milestone-required-votes (get required-votes milestone))
-        (milestone-auto-verified (get auto-verified milestone))
-        (campaign-completed (get completed-milestones campaign)))
+        (milestone-key {campaign-id: campaign-id, milestone-id: milestone-id}))
     
-    (asserts! (is-eq campaign-creator tx-sender) err-unauthorized)
+    (asserts! (is-eq (get creator campaign) tx-sender) err-unauthorized)
     (asserts! (is-eq (get token-type campaign) token-type-stx) err-invalid-token)
     (asserts! (not (get is-completed milestone)) err-milestone-not-ready)
-    (asserts! (> campaign-milestones u0) err-invalid-milestone)
+    (asserts! (> (get milestones-count campaign) u0) err-invalid-milestone)
     
-    ;; Check if milestone meets release criteria (votes or auto-verification)
-    (asserts! (or (>= milestone-vote-count milestone-required-votes)
-                  milestone-auto-verified) err-insufficient-votes)
+    (asserts! (or (>= (get current-votes milestone) (get required-votes milestone))
+                  (get auto-verified milestone)) err-insufficient-votes)
     
-    (let ((release-amount (/ campaign-raised campaign-milestones)))
+    (let ((release-amount (/ (get raised-amount campaign) (get milestones-count campaign))))
       (asserts! (> release-amount u0) err-invalid-amount)
-      (try! (as-contract (transfer-stx release-amount tx-sender campaign-creator)))
+      (try! (as-contract (transfer-stx release-amount tx-sender (get creator campaign))))
       
       (map-set milestones milestone-key
         (merge milestone {is-completed: true, funds-released: release-amount}))
       
       (map-set campaigns campaign-id 
-        (merge campaign {completed-milestones: (+ campaign-completed u1)}))
+        (merge campaign {completed-milestones: (+ (get completed-milestones campaign) u1)}))
       
+      (let ((analytics (unwrap! (map-get? milestone-analytics milestone-key) err-not-found))
+            (milestone-data (unwrap! (map-get? milestones milestone-key) err-not-found)))
+        (map-set milestone-analytics milestone-key
+          (merge analytics {
+            completion-block: stacks-block-height,
+            time-to-complete: (if (> stacks-block-height (get target-block milestone-data))
+                                 (- stacks-block-height (get target-block milestone-data))
+                                 u0)
+          }))
+      )
       (ok release-amount)
     )
   )
@@ -474,7 +585,6 @@
     (asserts! (not (get is-completed milestone)) err-milestone-not-ready)
     (asserts! (> (get milestones-count campaign) u0) err-invalid-milestone)
     
-    ;; Check if milestone meets release criteria (votes or auto-verification)
     (asserts! (or (>= (get current-votes milestone) (get required-votes milestone))
                   (get auto-verified milestone)) err-insufficient-votes)
     
@@ -488,6 +598,16 @@
           (map-set campaigns campaign-id 
             (merge campaign {completed-milestones: (+ (get completed-milestones campaign) u1)}))
           
+          (let ((analytics (unwrap! (map-get? milestone-analytics milestone-key) err-not-found))
+                (milestone-data (unwrap! (map-get? milestones milestone-key) err-not-found)))
+            (map-set milestone-analytics milestone-key
+              (merge analytics {
+                completion-block: stacks-block-height,
+                time-to-complete: (if (> stacks-block-height (get target-block milestone-data))
+                                     (- stacks-block-height (get target-block milestone-data))
+                                     u0)
+              }))
+          )
           (ok release-amount)
         )
         error err-token-transfer-failed
@@ -597,5 +717,37 @@
                      {dependency-id: none, is-met: true}
                    )
     {dependency-id: none, is-met: false}
+  )
+)
+
+;; Campaign Analytics Read Functions
+
+(define-read-only (get-campaign-analytics (campaign-id uint))
+  (map-get? campaign-analytics campaign-id)
+)
+
+(define-read-only (get-milestone-analytics (campaign-id uint) (milestone-id uint))
+  (map-get? milestone-analytics {campaign-id: campaign-id, milestone-id: milestone-id})
+)
+
+(define-read-only (get-campaign-progress (campaign-id uint))
+  (match (map-get? campaigns campaign-id)
+    campaign-data {
+      raised-amount: (get raised-amount campaign-data),
+      target-amount: (get target-amount campaign-data),
+      progress-percentage: (if (> (get target-amount campaign-data) u0)
+                              (/ (* (get raised-amount campaign-data) u100) (get target-amount campaign-data))
+                              u0),
+      milestones-completed: (get completed-milestones campaign-data),
+      total-milestones: (get milestones-count campaign-data)
+    }
+    {raised-amount: u0, target-amount: u0, progress-percentage: u0, milestones-completed: u0, total-milestones: u0}
+  )
+)
+
+(define-read-only (get-funding-velocity (campaign-id uint))
+  (match (map-get? campaign-analytics campaign-id)
+    analytics (get funding-velocity analytics)
+    u0
   )
 )

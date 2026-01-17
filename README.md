@@ -427,3 +427,138 @@ We welcome contributions! Please read our contributing guidelines and submit pul
 - Validate reward distribution logic
 - Test NFT transfer mechanisms
 - Verify bonus multiplier calculations
+
+
+## 📖 Usage
+
+### Viewing Campaign Analytics
+
+```clarity
+;; Get comprehensive campaign analytics
+(contract-call? .pulseforge get-campaign-analytics u1)
+;; Returns: {total-backers, average-contribution, first-contribution-block, 
+;;           last-contribution-block, total-votes-cast, funding-velocity}
+
+;; Check campaign progress
+(contract-call? .pulseforge get-campaign-progress u1)
+;; Returns: {raised-amount, target-amount, progress-percentage, 
+;;           milestones-completed, total-milestones}
+
+;; Monitor funding velocity
+(contract-call? .pulseforge get-funding-velocity u1)
+;; Returns: tokens-per-block rate
+
+;; View milestone analytics
+(contract-call? .pulseforge get-milestone-analytics u1 u2)
+;; Returns: {vote-participation-rate, completion-block, 
+;;           time-to-complete, voter-count}
+```
+
+### Creating a Campaign with Analytics
+
+```clarity
+;; Create campaign (automatically initializes analytics)
+(contract-call? .pulseforge create-stx-campaign 
+  "AI Innovation Project" 
+  "Building next-gen AI solutions" 
+  u1000000 
+  u1440)
+
+;; Back the campaign (analytics auto-updated)
+(contract-call? .pulseforge back-stx-campaign u1 u50000)
+
+;; Check real-time analytics
+(contract-call? .pulseforge get-campaign-analytics u1)
+```
+
+## 📊 Analytics Use Cases
+
+### For Creators
+- **Track Campaign Performance**: Monitor funding velocity to adjust marketing
+- **Identify Engagement**: See vote participation rates
+- **Optimize Milestones**: Analyze time-to-complete metrics
+- **Understand Backers**: View average contribution and total supporter count
+
+### For Backers
+- **Assess Campaign Health**: Check funding velocity and progress
+- **Evaluate Community Engagement**: Review vote participation rates
+- **Make Informed Decisions**: Analyze milestone completion history
+- **Compare Campaigns**: Use metrics to choose projects to support
+
+### For Platform Operators
+- **Market Insights**: Aggregate analytics across campaigns
+- **Quality Metrics**: Identify successful campaign patterns
+- **Risk Assessment**: Flag slow or underperforming campaigns
+- **Growth Tracking**: Monitor platform-wide funding trends
+
+## 🔒 Security Features
+
+- **Token Approval System**: Only pre-approved SIP-010 tokens can be used
+- **Type Safety**: Clear separation between STX and SIP-010 token operations
+- **Advanced Milestone Validation**: Comprehensive checks for milestone types and conditions
+- **Dependency Verification**: Automatic validation of milestone prerequisites
+- **Analytics Integrity**: Automatic calculation prevents manipulation
+- **Transfer Validation**: Comprehensive error handling for token transfers
+- **Access Control**: Proper authorization checks for all sensitive operations
+- **Anti-Spam Protection**: Voting and backing restrictions prevent abuse
+- **Input Validation**: Thorough parameter checking to prevent invalid states
+
+## 🗺️ Roadmap
+
+### Phase 1: Multi-Token Support ✅
+- STX campaign support
+- SIP-010 token integration
+- Token approval registry
+- Enhanced security measures
+
+### Phase 2: Advanced Features ✅
+- Advanced Milestone Types
+- Automated Verification
+- Conditional Logic
+- Enhanced Analytics
+
+### Phase 3: Tier-Based Rewards ✅
+- NFT Rewards
+- Token Rewards
+- Bonus Multipliers
+- Tier Management
+
+### Phase 4: Campaign Analytics ✅
+- **Real-time Metrics**: Funding velocity, participation rates
+- **Progress Tracking**: Milestone and funding analytics
+- **Performance Insights**: Backer behavior and campaign health
+- **Automated Calculations**: No manual metric updates needed
+
+### Phase 5: Ecosystem Integration (Coming Soon)
+- Campaign Categories
+- Advanced Analytics Dashboard
+- Social Features
+- Reputation System
+
+## 💡 Analytics Examples
+
+### High-Performing Campaign Indicators
+```clarity
+;; Good funding velocity (example: 100 STX per block)
+funding-velocity: u100
+
+;; Strong participation (80%+ backers voting)
+vote-participation-rate: u80
+
+;; Quick milestone completion
+time-to-complete: u10 ;; blocks
+
+;; Healthy progress
+progress-percentage: u75 ;; 75% funded
+```
+
+### Campaign Health Monitoring
+```clarity
+;; Check if campaign is gaining momentum
+(let ((velocity (get-funding-velocity u1)))
+  (if (> velocity u50)
+      "Campaign trending up"
+      "Consider marketing boost"))
+```
+
+**Built with ❤️ on Stacks**
